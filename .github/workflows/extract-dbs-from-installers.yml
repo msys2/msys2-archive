@@ -12,7 +12,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           for tag in $(gh release list -R msys2/msys2-installer --exclude-drafts --exclude-pre-releases --json tagName --jq '.[].tagName|select(startswith("nightly")|not)'); do
-            url="$(gh release view -R msys2/msys2-installer "$tag" --json assets --jq '.assets[]|select(.contentType == "application/x-xz").url')"
+            url="$(gh release view -R msys2/msys2-installer "$tag" --json assets --jq '.assets[]|select((.contentType == "application/x-xz") or (.url|endswith(".tar.xz"))).url')"
             mkdir tmp; pushd tmp
             curl -Lo msys2.xz "$url"
             tar -Jxf msys2.xz msys64/var/lib/pacman/sync
