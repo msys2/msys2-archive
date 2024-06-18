@@ -1,0 +1,20 @@
+name: extract-from-installers
+on:
+  workflow_dispatch:
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Process
+        run: |
+          for tag in $(gh release list -R msys2/msys2-installer --exclude-drafts --exclude-pre-releases --json tagName --jq '.[].tagName|select(startswith("nightly")|not)'); do
+            url="$(gh release view -R msys2/msys2-installer "$tag" --json assets --jq '.assets[]|select(.contentType == "application/x-xz").url')"
+            mkdir tmp; pushd tmp
+            curl -Lo msys2.xz "$url"
+            tar -Jxf msys2.xz msys64/var/lib/pacman/sync
+            timestamp="$(date -r msys64/var/lib/pacman/sync/msys.db "+%Y%m%dT%H%M")"
+            gh release create "$timestamp" --title "$timestamp" --notes "" -R ${{ github.repository }} msys64/var/lib/pacman/sync/*
+            popd
+          done
