@@ -1,6 +1,11 @@
 name: extract-from-installers
 on:
   workflow_dispatch:
+    inputs:
+      startdate:
+        type: text
+        required: false
+        default: ''
 jobs:
   extract:
     runs-on: ubuntu-latest
@@ -10,8 +15,9 @@ jobs:
       - name: Process
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          INPUT_STARTDATE: ${{ inputs.startdate }}
         run: |
-          for tag in $(gh release list -R msys2/msys2-installer --exclude-drafts --exclude-pre-releases --json tagName --jq '.[].tagName|select(startswith("nightly")|not)'); do
+          for tag in $(gh release list -R msys2/msys2-installer --exclude-drafts --exclude-pre-releases --json publishedAt,tagName --jq '.[]|select(.publishedAt>"'"${INPUT_STARTDATE}"'")|.tagName|select(startswith("nightly")|not)'); do
             url="$(gh release view -R msys2/msys2-installer "$tag" --json assets --jq '.assets[]|select((.contentType == "application/x-xz") or (.url|endswith(".tar.xz"))).url')"
             mkdir tmp; pushd tmp
             curl -Lo msys2.xz "$url"
