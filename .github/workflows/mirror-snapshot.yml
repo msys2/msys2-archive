@@ -1,0 +1,42 @@
+name: mirror-snapshot
+on:
+  workflow_dispatch:
+    inputs:
+      snapshotrelease:
+        type: text
+        required: true
+      reponame:
+        type: text
+        required: true
+      newrelease:
+        type: text
+        required: true
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Clone pacdb
+        uses: actions/checkout@v4
+        with:
+          repository: msys2/pacdb
+          persist-credentials: false
+          path: pacdb
+      - name: Process
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          SNAPSHOTRELEASE: ${{ inputs.snapshotrelease }}
+          REPONAME: ${{ inputs.reponame  }}
+          NEWRELEASE: ${{ inputs.newrelease }}
+        run: |
+          python -m venv --system-site-packages .venv
+          . .venv/bin/activate
+          pip install pacdb
+          mkdir "${NEWRELEASE}" && pushd "${NEWRELEASE}"
+          for sig in "" ".sig"; do
+            curl -LO "https://github.com/${{ github.repository }}/releases/download/${SNAPSHOTRELEASE}/${REPONAME}.db${sig}"
+          done
+          popd
+          python pacdb/examples/pacmirror_rsync.py -e "${REPONAME}" -n -v "rsync://repo.msys2.org/builds/mingw/${REPONAME}" "${NEWRELEASE}"
+          gh release create "${NEWRELEASE}" --title "${NEWRELEASE}" --notes "" -R "${{ github.repository }}" "${NEWRELEASE}"/*
