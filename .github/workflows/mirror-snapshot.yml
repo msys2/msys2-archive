@@ -39,6 +39,7 @@ jobs:
           done
           popd
           python pacdb/examples/pacmirror_rsync.py -e "${REPONAME}" -n -v "rsync://repo.msys2.org/builds/mingw/${REPONAME}" "${NEWRELEASE}"
-          gh release create -d "${NEWRELEASE}" --title "${NEWRELEASE}" --notes "" -R "${{ github.repository }}" || true
-          gh release view -R "${{ github.repository }}" "${NEWRELEASE}" --json assets -q '"'"${NEWRELEASE}"'/" + .assets.[].name' > existing.txt
+           || true
+          gh release view -R "${{ github.repository }}" "${NEWRELEASE}" --json assets -q '"'"${NEWRELEASE}"'/" + .assets.[].name' > existing.txt ||
+          gh release create -d "${NEWRELEASE}" --title "${NEWRELEASE}" --notes "" -R "${{ github.repository }}"
           find "${NEWRELEASE}" -type f -print | grep -Fxvf existing.txt | xargs -d '\n' -n 200 sh -c 'gh release upload -R "${{ github.repository }}" "${NEWRELEASE}" "$@" && sleep 100' sh
