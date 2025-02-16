@@ -33,6 +33,7 @@ jobs:
           python -m venv --system-site-packages .venv
           . .venv/bin/activate
           pip install pacdb
+          shopt -s nullglob
           mkdir "${NEWRELEASE}" && pushd "${NEWRELEASE}"
           for sig in "" ".sig"; do
             curl -LO "https://github.com/${{ github.repository }}/releases/download/${SNAPSHOTRELEASE}/${REPONAME}.db${sig}"
