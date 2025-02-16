@@ -42,7 +42,7 @@ jobs:
           python pacdb/examples/pacmirror_rsync.py -e "${REPONAME}" -n -v "rsync://repo.msys2.org/builds/mingw/${REPONAME}" "${NEWRELEASE}"
           # work around github issue with ~ in file name (turns into .)
           for a in "${NEWRELEASE}/"*~*; do
-              mv "$a" "`tr '~' '.' <<<"$a"`"
+              mv "$a" "${a//\~/.}"
           done
           gh release view -R "${{ github.repository }}" "${NEWRELEASE}" --json assets -q '"'"${NEWRELEASE}"'/" + .assets.[].name' > existing.txt ||
             gh release create -d "${NEWRELEASE}" --title "${NEWRELEASE}" --notes "" -R "${{ github.repository }}"
