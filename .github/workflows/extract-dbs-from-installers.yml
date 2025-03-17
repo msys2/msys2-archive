@@ -22,8 +22,7 @@ jobs:
             mkdir tmp; pushd tmp
             curl -Lo msys2.xz "$url"
             tar -Jxf msys2.xz msys64/var/lib/pacman/sync
-            timestamp="$(date -r msys64/var/lib/pacman/sync/msys.db "+%Y%m%dT%H%M")"
-            gh release create "$timestamp" --title "$timestamp" --notes "" -R ${{ github.repository }} msys64/var/lib/pacman/sync/*
+            gh release create "$tag" --title "$tag" --notes "" -R ${{ github.repository }} msys64/var/lib/pacman/sync/*
             popd
             rm -rf tmp
           done
