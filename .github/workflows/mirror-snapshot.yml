@@ -1,0 +1,56 @@
+name: mirror-snapshot
+on:
+  workflow_dispatch:
+    inputs:
+      snapshotrelease:
+        type: text
+        required: true
+      reponame:
+        type: text
+        required: true
+      newrelease:
+        type: text
+        required: true
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Clone pacdb
+        uses: actions/checkout@v4
+        with:
+          repository: msys2/pacdb
+          persist-credentials: false
+          path: pacdb
+      - name: Process
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          SNAPSHOTRELEASE: ${{ inputs.snapshotrelease }}
+          REPONAME: ${{ inputs.reponame  }}
+          NEWRELEASE: ${{ inputs.newrelease }}
+        run: |
+          python -m venv --system-site-packages .venv
+          . .venv/bin/activate
+          pip install pacdb
+          shopt -s nullglob
+          mkdir "${NEWRELEASE}" && pushd "${NEWRELEASE}"
+          for sig in "" ".sig"; do
+            curl -LO "https://github.com/${{ github.repository }}/releases/download/${SNAPSHOTRELEASE}/${REPONAME}.db${sig}"
+          done
+          popd
+          python pacdb/examples/pacmirror_rsync.py -e "${REPONAME}" -n -v "rsync://repo.msys2.org/builds/mingw/${REPONAME}" "${NEWRELEASE}"
+          # work around github issue with ~ in file name (turns into .)
+          for a in "${NEWRELEASE}/"*~*; do
+              mv "$a" "${a//\~/.}"
+          done
+          gh release view -R "${{ github.repository }}" "${NEWRELEASE}" --json assets -q '"'"${NEWRELEASE}"'/" + .assets.[].name' > existing.txt ||
+            gh release create -d "${NEWRELEASE}" --title "${NEWRELEASE}" --notes "" -R "${{ github.repository }}"
+          find "${NEWRELEASE}" -type f -print | grep -Fxvf existing.txt | xargs -d '\n' -n 200 bash -c '
+            IFS=" " read -r remaining limit reset < <(gh api rate_limit --jq '\''"\(.rate.remaining) \(.rate.limit) \(.rate.reset)"'\'');
+            if (( remaining < 300 )); then
+              echo "sleeping $(( reset - $(date +%s) ))";
+              sleep $(( reset - $(date +%s) ));
+            fi;
+            gh release upload -R "${{ github.repository }}" "${NEWRELEASE}" "$@" && sleep 100' bash
+          gh release edit -R "${{ github.repository }}" "${NEWRELEASE}" --latest=false --prerelease=true --draft=false
