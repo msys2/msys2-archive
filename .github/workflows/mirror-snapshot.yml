@@ -11,6 +11,9 @@ on:
       newrelease:
         type: text
         required: true
+      msysarch:
+        type: text
+        required: false
 jobs:
   mirror:
     runs-on: ubuntu-latest
@@ -29,6 +32,7 @@ jobs:
           SNAPSHOTRELEASE: ${{ inputs.snapshotrelease }}
           REPONAME: ${{ inputs.reponame  }}
           NEWRELEASE: ${{ inputs.newrelease }}
+          MSYSARCH: ${{ inputs.msysarch }}
         run: |
           python -m venv --system-site-packages .venv
           . .venv/bin/activate
@@ -39,7 +43,12 @@ jobs:
             curl -LO "https://github.com/${{ github.repository }}/releases/download/${SNAPSHOTRELEASE}/${REPONAME}.db${sig}"
           done
           popd
-          python pacdb/examples/pacmirror_rsync.py -e "${REPONAME}" -n -v "rsync://repo.msys2.org/builds/mingw/${REPONAME}" "${NEWRELEASE}"
+          if [[ -n "${MSYSARCH}" ]]; then
+            subdir="msys/${MSYSARCH}"
+          else
+            subdir="mingw"
+          fi
+          python pacdb/examples/pacmirror_rsync.py -e "${REPONAME}" -n -v "rsync://repo.msys2.org/builds/${subdir}/${REPONAME}" "${NEWRELEASE}"
           # work around github issue with ~ in file name (turns into .)
           for a in "${NEWRELEASE}/"*~*; do
               mv "$a" "${a//\~/.}"
