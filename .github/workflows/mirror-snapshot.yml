@@ -43,12 +43,12 @@ jobs:
             curl -LO "https://github.com/${{ github.repository }}/releases/download/${SNAPSHOTRELEASE}/${REPONAME}.db${sig}"
           done
           popd
-          if [[ -n "${MSYSARCH}" ]]; then
+          if [[ "${REPONAME}" == "msys" && -n "${MSYSARCH}" ]]; then
             subdir="msys/${MSYSARCH}"
           else
-            subdir="mingw"
+            subdir="mingw/${REPONAME}"
           fi
-          python pacdb/examples/pacmirror_rsync.py -e "${REPONAME}" -n -v "rsync://repo.msys2.org/builds/${subdir}/${REPONAME}" "${NEWRELEASE}"
+          python pacdb/examples/pacmirror_rsync.py -e "${REPONAME}" -n -v "rsync://repo.msys2.org/builds/${subdir}" "${NEWRELEASE}"
           # work around github issue with ~ in file name (turns into .)
           for a in "${NEWRELEASE}/"*~*; do
               mv "$a" "${a//\~/.}"
