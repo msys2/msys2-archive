@@ -40,6 +40,10 @@ jobs:
             releasefiles = {l.strip() for l in fh.readlines ()}
 
           missingfiles = repofiles - releasefiles
+          extrafiles = releasefiles - repofiles
           if missingfiles:
             print(f"::error title=Missing files in release {os.environ['NEWRELEASE'].rsplit('/', 1)[1]}::{", ".join(missingfiles)}")
+          if extrafiles:
+            print(f"::error title=Extra files in release {os.environ['NEWRELEASE'].rsplit('/', 1)[1]}::{", ".join(extrafiles)}")
+          if missingfiles or extrafiles:
             sys.exit(1)
