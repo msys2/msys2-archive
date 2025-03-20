@@ -41,5 +41,5 @@ jobs:
 
           missingfiles = repofiles - releasefiles
           if missingfiles:
-            print(f"::errror title=Missing files in release {os.environ['NEWRELEASE'].rsplit('/', 1)[1]}::{", ".join(missingfiles)}")
+            print(f"::error title=Missing files in release {os.environ['NEWRELEASE'].rsplit('/', 1)[1]}::{", ".join(missingfiles)}")
             sys.exit(1)
