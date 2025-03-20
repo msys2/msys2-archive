@@ -1,0 +1,45 @@
+name: verify-snapshot-mirror
+on:
+  workflow_dispatch:
+    inputs:
+      reponame:
+        type: text
+        required: true
+      newrelease:
+        type: text
+        required: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Prepare
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          REPONAME: ${{ inputs.reponame  }}
+          NEWRELEASE: ${{ inputs.newrelease }}
+        run: |
+          pip install pacdb
+          gh release view -R "${{ github.repository }}" "${NEWRELEASE}" --json assets -q '.assets.[].name' > existing.txt
+      - name: Verify
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          REPONAME: ${{ inputs.reponame  }}
+          NEWRELEASE: https://github.com/${{ github.repository }}/releases/download/${{ inputs.newrelease }}
+        shell: python -u {0}
+        run: |
+          import os
+          import pacdb
+          import sys
+          repo = pacdb.Database.from_url (os.environ['REPONAME'], os.environ['NEWRELEASE'])
+          repofiles = {pkg.filename.replace('~', '.') for pkg in repo}
+          repofiles.update ({f+".sig" for f in repofiles})
+          repofiles.update ({os.environ['REPONAME']+".db", os.environ['REPONAME']+".db.sig"})
+          with open ("existing.txt", "r") as fh:
+            releasefiles = {l.strip() for l in fh.readlines ()}
+
+          missingfiles = repofiles - releasefiles
+          if missingfiles:
+            print(f"::errror title=Missing files in release {os.environ['NEWRELEASE'].rsplit('/', 1)[1]}::{", ".join(missingfiles)}")
+            sys.exit(1)
