@@ -55,7 +55,7 @@ jobs:
               mv "$a" "${a//\~/.}"
           done
           mkdir tmp
-          ft="$(file "${REPONAME}.db")"
+          ft="$(cd "${NEWRELEASE}" && file "${REPONAME}.db")"
           bsdtar -C tmp -xf "${NEWRELEASE}/${REPONAME}.db"
           pushd tmp
           find . -type f -name desc -exec sed -i -e '/^%FILENAME%$/,+1y/~/./' '{}' +
