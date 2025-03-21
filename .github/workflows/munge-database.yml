@@ -1,0 +1,43 @@
+name: munge-database
+on:
+  workflow_dispatch:
+    inputs:
+      reponame:
+        type: text
+        required: true
+      newrelease:
+        type: text
+        required: true
+jobs:
+  munge:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Process
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          REPONAME: ${{ inputs.reponame  }}
+          NEWRELEASE: ${{ inputs.newrelease }}
+        run: |
+          sudo apt-get -y install libarchive-tools
+          shopt -s nullglob
+          curl -LO "https://github.com/${{ github.repository }}/releases/download/${NEWRELEASE}/${REPONAME}.db"
+          ft="$(file "${REPONAME}.db")"
+          mkdir tmp
+          bsdtar -C tmp -xf "${REPONAME}.db"
+          cd tmp
+          find . -type f -name desc -exec sed -i -e '/^%FILENAME%$/,+1y/~/./' '{}' +
+          bsdtar --uid 1 --uname root --gid 1 --gname root -cf - * | \
+            if grep -Fq 'Zstandard compressed' <<<"$ft"; then
+              zstd -c -T0 --ultra -20 -
+            elif grep -Fq 'gzip compressed' <<<"$ft"; then
+              gzip -c -f -n
+            elif grep -Fq 'XZ compressed' <<<"$ft"; then
+              xz -c -z -T0 -
+            else
+              echo "Unknown file type $ft" >&2 && exit 1
+            fi > "../${REPONAME}.db"
+          cd ..
+          gh release delete-asset -R '${{ github.repository }}' -y "${NEWRELEASE}" "${REPONAME}.db.sig" || true
+          gh release upload -R '${{ github.repository }}' --clobber "${NEWRELEASE}" "${REPONAME}.db"
