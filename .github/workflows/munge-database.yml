@@ -26,18 +26,22 @@ jobs:
           ft="$(file "${REPONAME}.db")"
           mkdir tmp
           bsdtar -C tmp -xf "${REPONAME}.db"
-          cd tmp
+          pushd tmp
           find . -type f -name desc -exec sed -i -e '/^%FILENAME%$/,+1y/~/./' '{}' +
           bsdtar --uid 1 --uname root --gid 1 --gname root -cf - * | \
-            if grep -Fq 'Zstandard compressed' <<<"$ft"; then
+            case "$ft" in
+            *'Zstandard compressed'*)
               zstd -c -T0 --ultra -20 -
-            elif grep -Fq 'gzip compressed' <<<"$ft"; then
+              ;;
+            *'gzip compressed'*)
               gzip -c -f -n
-            elif grep -Fq 'XZ compressed' <<<"$ft"; then
+              ;;
+            *'XZ compressed'*)
               xz -c -z -T0 -
-            else
+              ;;
+            *)
               echo "Unknown file type $ft" >&2 && exit 1
-            fi > "../${REPONAME}.db"
-          cd ..
+            esac > "../${REPONAME}.db"
+          popd
           gh release delete-asset -R '${{ github.repository }}' -y "${NEWRELEASE}" "${REPONAME}.db.sig" || true
           gh release upload -R '${{ github.repository }}' --clobber "${NEWRELEASE}" "${REPONAME}.db"
