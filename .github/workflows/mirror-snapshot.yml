@@ -53,7 +53,7 @@ jobs:
           for a in "${NEWRELEASE}/"*~*; do
               mv "$a" "${a//\~/.}"
           done
-          pushd tmp
+          mkdir tmp && pushd tmp
           bsdtar -C tmp -xf "${NEWRELEASE}/${REPONAME}.db"
           cd tmp
           find . -type f -name desc -exec sed -i -e '/^%FILENAME%$/,+1y/~/./' '{}' +
