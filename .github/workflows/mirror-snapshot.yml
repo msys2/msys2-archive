@@ -3,16 +3,16 @@ on:
   workflow_dispatch:
     inputs:
       snapshotrelease:
-        type: text
+        type: string
         required: true
       reponame:
-        type: text
+        type: string
         required: true
       newrelease:
-        type: text
+        type: string
         required: true
       msysarch:
-        type: text
+        type: string
         required: false
 jobs:
   mirror:
@@ -55,6 +55,7 @@ jobs:
               mv "$a" "${a//\~/.}"
           done
           mkdir tmp
+          ft="$(file "${REPONAME}.db")"
           bsdtar -C tmp -xf "${NEWRELEASE}/${REPONAME}.db"
           pushd tmp
           find . -type f -name desc -exec sed -i -e '/^%FILENAME%$/,+1y/~/./' '{}' +
