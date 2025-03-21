@@ -54,20 +54,24 @@ jobs:
           for a in "${NEWRELEASE}/"*~*; do
               mv "$a" "${a//\~/.}"
           done
-          mkdir tmp && pushd tmp
+          mkdir tmp
           bsdtar -C tmp -xf "${NEWRELEASE}/${REPONAME}.db"
-          cd tmp
+          pushd tmp
           find . -type f -name desc -exec sed -i -e '/^%FILENAME%$/,+1y/~/./' '{}' +
           bsdtar --uid 1 --uname root --gid 1 --gname root -cf - * | \
-            if grep -Fq 'Zstandard compressed' <<<"$ft"; then
+            case "$ft" in
+            *'Zstandard compressed'*)
               zstd -c -T0 --ultra -20 -
-            elif grep -Fq 'gzip compressed' <<<"$ft"; then
+              ;;
+            *'gzip compressed'*)
               gzip -c -f -n
-            elif grep -Fq 'XZ compressed' <<<"$ft"; then
+              ;;
+            *'XZ compressed'*)
               xz -c -z -T0 -
-            else
+              ;;
+            *)
               echo "Unknown file type $ft" >&2 && exit 1
-            fi > "../${NEWRELEASE}/${REPONAME}.db"
+            esac > "../${NEWRELEASE}/${REPONAME}.db"
           popd
           # database signature invalidated
           rm -f "${NEWRELEASE}/${REPONAME}.db.sig"
