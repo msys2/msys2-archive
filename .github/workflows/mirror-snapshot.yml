@@ -34,6 +34,7 @@ jobs:
           NEWRELEASE: ${{ inputs.newrelease }}
           MSYSARCH: ${{ inputs.msysarch }}
         run: |
+          sudo apt-get -y install libarchive-tools
           python -m venv --system-site-packages .venv
           . .venv/bin/activate
           pip install pacdb
